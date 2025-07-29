@@ -1,14 +1,20 @@
 'This is a Prototype / Demo of a wider project, this is built to test out the functions and see what’s possible.
-'This .BAS file should work with both QBASIC and QB64.
+'This .BAS file should work with both the Community QBasic version and QB64.
 Cls
+_Title "GhostSys v0.0.1 Prototype Demo"
 currentFolder$ = "C:\"
 
-Randomize Timer     ' optional: ensures different results each run
-randomValue = Int(Rnd * 10) + 1
+Dim restartFlag
+restartFlag = 0
+Dim endFlag
+endFlag = 0
 
-Dim fileList$(11)   ' create a Source List of File Names
+Randomize Timer ' optional: ensures different results each run
+randomValue = Int(Rnd * 10) + 1 ' only use to indicate new game
+
+Dim fileList$(12) ' create a Source List of File Names
 fileList$(1) = "secret.sys"
-fileList$(2) = "junk.bat"
+fileList$(2) = "es2ui.dll"
 fileList$(3) = "notes.txt"
 fileList$(4) = "config.ini"
 fileList$(5) = "readme.md"
@@ -18,101 +24,136 @@ fileList$(8) = "data.tmp"
 fileList$(9) = "boot.scr"
 fileList$(10) = "virus.txt"
 fileList$(11) = "toolkit.sys"
+fileList$(12) = "null.hex"
 
 
-Dim fileUsed(11)    ' track Used Files With a Parallel Boolean Array
-For i = 1 To 11
+Dim fileUsed(12) ' track Used Files With a Parallel Boolean Array
+For i = 1 To 12
     fileUsed(i) = 0
 Next
 
-Dim folderList$(4)  ' create a Source List of Folder Names
+Dim folderList$(4) ' create a Source List of Folder Names
 folderList$(1) = "SYSTEM"
 folderList$(2) = "LOGS"
 folderList$(3) = "OS"
 folderList$(4) = "APPS"
 
-Dim folderUsed(4)   ' track Used Folder With a Parallel Boolean Array
+Dim folderUsed(4) ' track Used Folder With a Parallel Boolean Array
 For i = 1 To 4
     folderUsed(i) = 0
 Next
 
 Dim folderNames$(2) ' number of folders in game
-Dim folderFiles$(2, 5)  ' number of files in each folder
+Dim folderFiles$(2, 5) ' number of files in each folder
 
-foundPassword = 0   ' to login to system
-hasKey = 0          ' todo
-hasNote = 0         ' todo
+foundPassword = 0 ' to login to system
+areLogin = 0 ' have logged in to system
+hasNote = 0 ' todo
 
-DIM cleanUses       ' to remove junk files
-DIM maxCleanUses
+Dim cleanUses ' to remove junk files
+Dim maxCleanUses
 maxCleanUses = 3
 cleanUses = 0
 
-DIM hasToolkit
+Dim hasToolkit
 hasToolkit = 0
 
-DIM patchActive     ' junk spawning paused
-DIM patchTurns
+Dim patchActive ' junk spawning paused
+Dim patchTurns
 Const patchDuration = 4 ' lasts for 4 turns
 patchActive = 0
 patchTurns = 0
 
-CALL WarningMessage
+Dim hasNullHex
+hasNullHex = 0
+Dim overrideReady
+overrideReady = 0
+
+Call WarningMessage
 StartScreen
-WelcomeScreen
-GameSetUp
-MainScreen
+
+Do
+    Cls
+    Call ResetGameState
+    Call RunGame
+
+    If restartFlag = 0 Then
+        Color 7, 0 ' Reset to light grey on black
+        Print "------------------------------------------"
+        Print " Would you like to restart the game? (Y/N)"
+        Print "------------------------------------------"
+        Print ""
+        Input restart$
+        restart$ = UCase$(LTrim$(RTrim$(restart$)))
+        If restart$ = "Y" Then restartFlag = 1
+    End If
+Loop While restartFlag = 1
+
+Print "Thanks for playing GhostSys Demo. Goodbye!"
+End
 
 '==============================
 ' delay compatible with QBASIC as - _DELAY is a QB64-specific command
 '==============================
-SUB Delay (slow, seconds)
+Sub Delay (slow, seconds)
     For i = 1 To slow
         ' burn time
     Next
     _Delay seconds ' waits for 0.5 seconds
-End SUB
+End Sub
 
 '==============================
 ' ui message with colour
 '==============================
-SUB UIMessage(textColour, message$, resetColour)
-    COLOR textColour, 0
-    PRINT message$
-    COLOR resetColour, 0
-END SUB
+Sub UIMessage (textColour, message$, resetColour)
+    Color textColour, 0
+    Print message$
+    Color resetColour, 0
+End Sub
 
 '==============================
 ' ui bar animation with colour
 '==============================
-SUB UIBar(textColour, length, resetColour)    
+Sub UIBar (textColour, length, resetColour)
     Color textColour, 0
     For i = 1 To length
         Print Chr$(219);
         Call Delay(300, 0.05)
-    Next 
-    COLOR resetColour, 0
-END SUB
+    Next
+    Color resetColour, 0
+    Print " "
+End Sub
 
 '==============================
 ' warning message
 '==============================
-SUB WarningMessage
-    CALL UIMessage(14, Chr$(13) + Chr$(176) + " Note " + Chr$(176), 7) ' yellow text
-    PRINT Chr$(176); " This program may cause minor screen flicker due to rapid display updates."
-    PRINT Chr$(13); " Press any key to begin..."
-    INPUT wm$
+Sub WarningMessage
+    Call UIMessage(14, Chr$(13) + Chr$(176) + " Note " + Chr$(176), 7) ' yellow text
+    Print Chr$(176); " This program may cause minor screen flicker due to rapid display updates."
+    Print Chr$(176); " You can toggle Fullscreen manually with ALT + ENTER"
+    Print Chr$(13); " Press Enter to begin..."
+    Input wm$
     Cls
-END SUB
+End Sub
+
+'==============================
+' play winning sound
+'==============================
+Sub SoundWin
+    For i = 1 To 15
+        Sound 1000 + Int(Rnd * 500), 2
+        Call Delay(200, 0.01)
+    Next
+End Sub
 
 '==============================
 ' start screen
 '==============================
-SUB StartScreen
-    SHARED randomValue
+Sub StartScreen
+    Shared randomValue
     Color 10, 0 ' light green on black
 
-    Print "GhostSys v0.0.1 [Shadow Kernel]"
+    Print "GhostSys v0.0.1 [Prototype Demo]"
     Sleep 1
     Print "Initializing system components..."
     Sleep 1
@@ -161,12 +202,12 @@ SUB StartScreen
     Next
     Sleep 2
     Print
-End SUB
+End Sub
 
 '==============================
 ' welcome screen
 '==============================
-SUB WelcomeScreen
+Sub WelcomeScreen
     Color 7, 0 ' light grey on black
 
     Print ""
@@ -184,7 +225,7 @@ SUB WelcomeScreen
     Print " Welcome to GhostSys, a retro-inspired, text-based puzzle-defence experience"; Chr$(13); " styled in the classic DOS terminals and built using the"; Chr$(13); " BASIC programming language."
     Print ""
     Color 15, 0 ' white on black
-    Print " As you navigate this simulated system, a rogue AI --codenamed NULL.HEX-- has "; Chr$(13); " begun corrupting directories by spawning junk files."; Chr$(13); " If the file count exceeds critical limits, the system collapses."; Chr$(13); " Your mission: log in to the root system "; Chr$(13); " and shut it all down before its too late."
+    Print " As you navigate this simulated system, a rogue AI --codenamed NULL.HEX-- has "; Chr$(13); " begun corrupting directories by spawning junk files."; Chr$(13); " If the file count exceeds critical limits, the system collapses."; Chr$(13); " Your mission: login to the root system "; Chr$(13); " and shut it all down before its too late."
     Color 7, 0 ' light grey on black
     Print ""
     Sleep 1
@@ -193,25 +234,25 @@ SUB WelcomeScreen
     Print " Use the HELP command to discover the tools at your disposal."; Chr$(13); " From DIR to TYPE, every command counts."
     Print ""
     Sleep 1
-    Print " Each session is seeded for randomized layouts and file structures,"; Chr$(13); " so no two runs are exactly alike."
+    Print " Each session has randomized layouts and file structures,"; Chr$(13); " so no two runs are exactly alike."
     Print ""
     Print " Prepare to decrypt, defend, and dive deep into the ghost of a forgotten system."
     Print ""
     Sleep 1
     Print " Enjoy. And good luck."
     Print "____________________________________________________________________"
-End SUB
+End Sub
 
 '==============================
 ' game set up - folder and file layout
 '==============================
-SUB GameSetUp
-    SHARED fileList$()
-    SHARED fileUsed()
-    SHARED folderList$()
-    SHARED folderUsed()
-    SHARED folderNames$()
-    SHARED folderFiles$()
+Sub GameSetUp
+    Shared fileList$()
+    Shared fileUsed()
+    Shared folderList$()
+    Shared folderUsed()
+    Shared folderNames$()
+    Shared folderFiles$()
 
     folderNumber = 1
     For folderSlot = 1 To 2 ' two random folders
@@ -227,246 +268,372 @@ SUB GameSetUp
     For folderIndex = 1 To 2 ' two random folders
         For fileSlot = 1 To 5 ' 5 random files per folder
             Do
-                r = Int(Rnd * 11) + 1
+                r = Int(Rnd * 12) + 1
             Loop While fileUsed(r) = 1
 
             folderFiles$(folderIndex, fileSlot) = fileList$(r)
             fileUsed(r) = 1
         Next
     Next
-End SUB
+End Sub
 
 
 '==============================
 ' main screen, game logic
 '==============================
-SUB MainScreen
-    SHARED currentFolder$
-    SHARED folderNames$()
-    SHARED folderFiles$()
-    SHARED showPrompt
-    SHARED foundPassword
-    SHARED hasKey
-    SHARED hasNote
-    SHARED cleanUses
-    SHARED maxCleanUses
-    SHARED hasToolkit
-    SHARED patchTurns
-    SHARED patchActive
+Sub MainScreen
+    Shared restartFlag
+    Shared endFlag
+    Shared currentFolder$
+    Shared folderNames$()
+    Shared folderFiles$()
+    Shared showPrompt
+    Shared foundPassword
+    Shared areLogin
+    Shared hasNote
+    Shared cleanUses
+    Shared maxCleanUses
+    Shared hasToolkit
+    Shared patchTurns
+    Shared patchActive
+    Shared hasNullHex
+    Shared overrideReady
 
-    DIM folderJunkFiles$(100)
-    DIM junkFileCount
-    DIM turnsPassed
-    DIM currentFolderIndex
+    Dim folderJunkFiles$(100)
+    Dim junkFileCount
+    Dim turnsPassed
+    Dim currentFolderIndex
 
     turnsPassed = 0
     junkFileCount = 0
 
-    DO
-        COLOR 7, 0 ' light grey on black 
-        PRINT currentFolder$ + "> ";
-        INPUT action$
-        action$ = UCASE$(LTRIM$(RTRIM$(action$)))
+    Do
+        Color 7, 0 ' light grey on black
+        Print currentFolder$ + "> ";
+        Input action$
+        action$ = UCase$(LTrim$(RTrim$(action$)))
         turnsPassed = turnsPassed + 1
 
-        IF patchActive = 0 THEN
+        If patchActive = 0 Then
             ' AI junk file spawner every 2 turns
-            IF turnsPassed MOD 2 = 0 THEN
-                CALL SpawnJunk(folderJunkFiles$(), junkFileCount)
-            END IF
-        ELSE
+            If turnsPassed Mod 2 = 0 Then
+                Call SpawnJunk(folderJunkFiles$(), junkFileCount)
+                If endFlag = 1 Then
+                    restartFlag = 0
+                    Exit Sub
+                End If
+            End If
+        Else
             patchTurns = patchTurns - 1
-            IF patchTurns = 0 THEN
+            If patchTurns = 0 Then
                 patchActive = 0
-                CALL UIMessage(13, "AI disruption ended. Junk files may resume.", 7) ' light magenta text
-            ELSE
-                PRINT "AI patch active. Junk spawning paused ("; patchTurns; " turns left)."
-            END IF
-        END IF
+                Call UIMessage(13, "AI disruption ended. Junk files may resume.", 7) ' light magenta text
+            Else
+                Print "AI patch active. Junk spawning paused ("; patchTurns; " turns left)."
+            End If
+        End If
 
         ' command dispatcher
-        SELECT CASE action$
-            CASE "DIR"
-                CALL HandleDIR(folderJunkFiles$(), junkFileCount, currentFolder$, folderNames$(), folderFiles$(), currentFolderIndex)            
-            CASE "CLEAN"
-                CALL HandleClean(junkFileCount, cleanUses, maxCleanUses, hasToolkit)
-            CASE "LOGIN"
-                CALL HandleLOGIN(foundPassword)
-            CASE "HELP"
-                CALL ShowHelp
-            CASE "ITEMS"
-                CALL ShowInventory(foundPassword, hasNote, hasKey, hasToolkit)
-            CASE "EXIT"
-                PRINT "Session terminated. Goodbye!"
-                END
-            CASE ELSE
-                IF LEFT$(action$, 3) = "CD " THEN
-                    CALL HandleCD(action$, currentFolder$, folderNames$(), currentFolderIndex)
-                ELSEIF LEFT$(action$, 5) = "TYPE " THEN
-                    CALL HandleTYPE(action$, folderFiles$(), currentFolderIndex, foundPassword, hasNote, hasToolkit, patchActive, patchTurns)
-                ELSE
-                    PRINT "Bad command or filename"
-                END IF
-        END SELECT
+        Select Case action$
+            Case "DIR"
+                Call HandleDIR(folderJunkFiles$(), junkFileCount, currentFolder$, folderNames$(), folderFiles$(), currentFolderIndex)
+            Case "CLEAN"
+                Call HandleClean(junkFileCount, cleanUses, maxCleanUses, hasToolkit)
+            Case "LOGIN"
+                Call HandleLOGIN(foundPassword)
+            Case "HELP"
+                Call ShowHelp
+            Case "ITEMS"
+                Call ShowInventory(foundPassword, hasNote, areLogin, hasToolkit, hasNullHex, overrideReady)
+            Case "RESTART"
+                Print "Restarting game..."
+                restartFlag = 0
+                Exit Sub
+            Case "EXIT"
+                Print "Session terminated. Goodbye!"
+                End
+            Case "OVERRIDE"
+                If overrideReady = 1 And areLogin = 1 Then
+                    Call UIMessage(10, "Shutting down rogue AI NULL.HEX...", 7) ' light green
+                    Call UIBar(10, 30, 7)
+                    Call SoundWin
+                    Print "System restored. NULL.HEX neutralized."
+                    Call UIMessage(10, "Completed demo, thank you for playing.", 7) ' light green
+                    restartFlag = 0
+                    Exit Sub
+                ElseIf overrideReady = 1 And areLogin = 0 Then
+                    Call UIMessage(12, "OVERRIDE failed. You must LOGIN first.", 7) ' light red
+                Else
+                    Call UIMessage(13, "OVERRIDE protocol unavailable. NULL.HEX not detected / located.", 7) ' light magenta
+                End If
+            Case Else
+                If Left$(action$, 3) = "CD " Or Left$(action$, 4) = "CD.." Then
+                    Call HandleCD(action$, currentFolder$, folderNames$(), currentFolderIndex)
+                ElseIf Left$(action$, 5) = "TYPE " Then
+                    Call HandleTYPE(action$, folderFiles$(), currentFolderIndex, foundPassword, hasNote, hasToolkit, patchActive, patchTurns)
+                Else
+                    Print "Bad command or filename"
+                End If
+        End Select
 
-        PRINT "------------------------------"
-    LOOP
-END SUB
+        Print "------------------------------"
+    Loop
+End Sub
 
 '==============================
 ' spawnJunk, add junk file
 '==============================
-SUB SpawnJunk(folderJunkFiles$(), junkFileCount)
+Sub SpawnJunk (folderJunkFiles$(), junkFileCount)
+    Shared endFlag
     junkFileCount = junkFileCount + 1
-    folderJunkFiles$(junkFileCount) = "junk" + STR$(junkFileCount) + ".tmp"
+    folderJunkFiles$(junkFileCount) = "junk" + Str$(junkFileCount) + ".tmp"
 
-    IF junkFileCount > 10 THEN
-        CALL UIMessage(12, "DIRECTORY OVERLOAD! The rogue AI has filled your drive!", 7) ' light red text
-        END
-    END IF
-END SUB
+    If junkFileCount > 10 Then
+        Call UIMessage(12, "DIRECTORY OVERLOAD! The rogue AI has filled your drive!", 7) ' light red text
+        endFlag = 1
+    End If
+End Sub
 
 '==============================
 ' handle DIR
 '==============================
-SUB HandleDIR(folderJunkFiles$(), junkFileCount, currentFolder$, folderNames$(), folderFiles$(), currentFolderIndex)
-    IF currentFolder$ = "C:\" THEN
-        FOR i = 1 TO UBOUND(folderNames$)
-            PRINT "Folder: "; folderNames$(i)
-        NEXT
-    ELSE
-        PRINT "Files in "; folderNames$(currentFolderIndex)
-        FOR j = 1 TO 5
-            IF folderFiles$(currentFolderIndex, j) <> "" THEN
-                PRINT " - "; folderFiles$(currentFolderIndex, j)
-            END IF
-        NEXT
-    END IF
+Sub HandleDIR (folderJunkFiles$(), junkFileCount, currentFolder$, folderNames$(), folderFiles$(), currentFolderIndex)
+    If currentFolder$ = "C:\" Then
+        For i = 1 To UBound(folderNames$)
+            Print "Folder: "; folderNames$(i)
+        Next
+    Else
+        Print "Files in "; folderNames$(currentFolderIndex)
+        For j = 1 To 5
+            If folderFiles$(currentFolderIndex, j) <> "" Then
+                Print " - "; folderFiles$(currentFolderIndex, j)
+            End If
+        Next
+    End If
 
     ' show junk files
-    FOR i = 1 TO junkFileCount
-        CALL UIMessage(8, " - " + folderJunkFiles$(i), 7) ' dark gray text
-    NEXT
-END SUB
+    For i = 1 To junkFileCount
+        Call UIMessage(8, " - " + folderJunkFiles$(i), 7) ' dark gray text
+    Next
+End Sub
 
 '==============================
 ' handle CD
 '==============================
-SUB HandleCD(action$, currentFolder$, folderNames$(), currentFolderIndex)
-    dirName$ = MID$(action$, 4)
-    foundFolder = 0
+Sub HandleCD (action$, currentFolder$, folderNames$(), currentFolderIndex)
+    If action$ = "CD.." Then
+        dirName$ = ".."
+    Else
+        dirName$ = Mid$(action$, 4)
+    End If
 
-    FOR i = LBOUND(folderNames$) TO UBOUND(folderNames$)
-        IF dirName$ = ".." THEN
+    foundFolder = 0
+    For i = LBound(folderNames$) To UBound(folderNames$)
+        If dirName$ = ".." Then
             currentFolder$ = "C:\"
             foundFolder = 1
-        ELSEIF dirName$ = folderNames$(i) AND currentFolder$ = "C:\" THEN
+        ElseIf dirName$ = folderNames$(i) And currentFolder$ = "C:\" Then
             currentFolder$ = "C:\" + folderNames$(i) + "\"
             currentFolderIndex = i
             foundFolder = 1
-        END IF
-    NEXT
+        End If
+    Next
 
-    IF foundFolder = 0 THEN
-        PRINT "Directory not found"
-    END IF
-END SUB
+    If foundFolder = 0 Then
+        Print "Directory not found"
+    End If
+End Sub
 
 '==============================
 ' handle TYPE
 '==============================
-SUB HandleTYPE(action$, folderFiles$(), currentFolderIndex, foundPassword, hasNote, hasToolkit, patchActive, patchTurns)
-    fileName$ = MID$(action$, 6)
+Sub HandleTYPE (action$, folderFiles$(), currentFolderIndex, foundPassword, hasNote, hasToolkit, patchActive, patchTurns)
+    Shared hasNullHex
+    Shared overrideReady
+    fileName$ = Mid$(action$, 6)
     foundFile = 0
 
-    FOR j = 1 TO 5
-        IF UCASE$(fileName$) = UCASE$(folderFiles$(currentFolderIndex, j)) THEN
+    For j = 1 To 5
+        If UCase$(fileName$) = UCase$(folderFiles$(currentFolderIndex, j)) Then
             foundFile = 1
-            EXIT FOR
-        END IF
-    NEXT
+            Exit For
+        End If
+    Next
 
-    IF foundFile THEN
-        SELECT CASE UCASE$(fileName$)
-            CASE "SECRET.SYS"
-                PRINT "Password = ECHOBASE"
+    If foundFile Then
+        Select Case UCase$(fileName$)
+            Case "SECRET.SYS"
+                Print "Password = ECHOBASE"
                 foundPassword = 1
-            CASE "NOTES.TXT"
-                PRINT "Clue: Check the SYSTEM folder"
+            Case "NOTES.TXT"
+                Print "Clue: Trace the rogue AI by locating NULL.HEX."
+                Print "Use the TYPE command to reveal its location."
                 hasNote = 1
-            CASE "TOOLKIT.SYS"                
-                PRINT "Toolkit activated. This will reset CLEAN when reach limit"
+            Case "TOOLKIT.SYS"
+                Call UIMessage(13, "Toolkit activated. This will reset CLEAN when reach limit.", 7) ' light magenta text
                 hasToolkit = 1
-                folderFiles$(currentFolderIndex, j) = ""  ' removes the file from current folder
-            CASE "PATCH.HEX"
-                PRINT "Patch initialized. AI disruption engaged."
+                folderFiles$(currentFolderIndex, j) = "" ' removes the file from current folder
+            Case "PATCH.HEX"
+                Call UIMessage(13, "Patch initialized. AI disruption engaged.", 7) ' light magenta text
                 patchActive = 1
                 patchTurns = patchDuration
-                folderFiles$(currentFolderIndex, j) = ""  ' removes the file from current folder
-            CASE ELSE
-                PRINT "File opened: "; fileName$
-                CALL UIBar(8, 30, 7) ' dark gray bar
-                PRINT
-                PRINT "No readable content."
-        END SELECT
-    ELSE
-        PRINT "File not found in current folder."
-    END IF
-END SUB
+                folderFiles$(currentFolderIndex, j) = "" ' removes the file from current folder
+            Case "NULL.HEX"
+                If hasNullHex = 0 Then
+                    hasNullHex = 1
+                    overrideReady = 1
+                    Call UIMessage(12, "WARNING: Rogue AI NULL.HEX Located!", 7) ' light red
+                    Call UIBar(12, 30, 7)
+                    Print "System corruption accelerating. Use OVERRIDE protocol."
+                Else
+                    Print "NULL.HEX already located."
+                End If
+            Case Else
+                Print "File opened: "; fileName$
+                Call UIBar(8, 30, 7) ' dark gray bar
+                Print
+                Print "No readable content."
+        End Select
+    ElseIf Left$(UCase$(fileName$), 4) = "JUNK" And Right$(UCase$(fileName$), 4) = ".TMP" Then
+        Print "These are files created by rogue AI, do not let it fill up the drive."
+    Else
+        Print "File not found in current folder."
+    End If
+End Sub
 
 '==============================
 ' handle CLEAN
 '==============================
-SUB HandleClean(junkFileCount, cleanUses, maxCleanUses, hasToolkit)
-    IF cleanUses >= maxCleanUses THEN
-        IF hasToolkit THEN
-            CALL UIMessage(3, "Toolkit used. CLEAN command restored.", 7) ' green text
+Sub HandleClean (junkFileCount, cleanUses, maxCleanUses, hasToolkit)
+    If cleanUses >= maxCleanUses Then
+        If hasToolkit Then
+            Call UIMessage(3, "Toolkit used. CLEAN command restored.", 7) ' green text
             cleanUses = 0
             hasToolkit = 0
-        ELSE
-            CALL UIMessage(13, "CLEAN command limit reached. System tools disabled.", 7) ' light magenta text
-            EXIT SUB
-        END IF
-    END IF
+        Else
+            Call UIMessage(13, "CLEAN command limit reached. System tools disabled.", 7) ' light magenta text
+            Exit Sub
+        End If
+    End If
 
-    PRINT "Junk files deleted. Directory stabilized."
+    Print "Junk files deleted. Directory stabilized."
     junkFileCount = 0
     cleanUses = cleanUses + 1
-    PRINT "CLEAN uses remaining: "; maxCleanUses - cleanUses
-END SUB
+    Print "CLEAN uses remaining: "; maxCleanUses - cleanUses
+End Sub
 
 '==============================
 ' handle LOGIN
 '==============================
-SUB HandleLOGIN(foundPassword)
-    IF foundPassword = 1 THEN
-        PRINT "Access Granted! System unlocking..."
-        END
-    ELSE
-        CALL UIMessage(12, "Access Denied. Missing password.", 7) ' light red text
-    END IF
-END SUB
+Sub HandleLOGIN (foundPassword)
+    Shared areLogin
+
+    If foundPassword = 1 Then
+        areLogin = 1
+        Call UIMessage(10, "Access Granted! System unlocking...", 7) ' light green
+        Call UIBar(10, 30, 7)
+        Print "New option available: OVERRIDE"
+    Else
+        Call UIMessage(12, "Access Denied. Missing password.", 7) ' light red text
+    End If
+End Sub
 
 '==============================
-' display help, list of valid commands 
+' display help, list of valid commands
 '==============================
-SUB ShowHelp
-    PRINT "dir    - displays working directory contents"
-    PRINT "cd     - change the working directory (cd .. To go back directory)"
-    PRINT "type   - display contents of a text file"
-    PRINT "login  - attempt system login (game goal)"
-    PRINT "clean  - delete junk files (limited number of use)"
-    PRINT "items  - show inventory"
-    PRINT "exit   - quit the game"
-END SUB
+Sub ShowHelp
+    Print "dir      - displays working directory contents"
+    Print "cd       - change the working directory (cd .. To go back directory)"
+    Print "type     - display contents of a text file"
+    Print "login    - attempt system login (game goal)"
+    Print "override - terminate rogue AI if NULL.HEX is located (game goal)"
+    Print "clean    - delete junk files (limited number of use)"
+    Print "items    - show inventory"
+    Print "restart  - to restart game again"
+    Print "exit     - quit the game"
+    Print "--------------------------------------------------------------------"
+    Print "You can toggle Fullscreen manually with ALT + ENTER"
+End Sub
 
 '==============================
 ' display inventory
 '==============================
-SUB ShowInventory(foundPassword, hasNote, hasKey, hasToolkit)
-    PRINT "Inventory:"
-    IF foundPassword THEN PRINT " - Have Password fragment"
-    IF hasNote THEN PRINT " - System clue note"
-    IF hasKey THEN PRINT " - Access key"
-    IF hasToolkit THEN PRINT " - Have Toolkit ON - this will reset CLEAN when reach limit"
-END SUB
+Sub ShowInventory (foundPassword, hasNote, areLogin, hasToolkit, hasNullHex, overrideReady)
+    Print "Inventory:"
+    If foundPassword Then Print " - Have Password fragment"
+    If hasNote Then Print " - System clue : Locate NULL.HEX. Use TYPE to extract rogue AI location data."
+    If areLogin Then Print " - Are logged in to System"
+    If hasToolkit Then Print " - Have Toolkit ON - this will reset CLEAN when reach limit"
+    If hasNullHex Then Print " - Rogue AI NULL.HEX located"
+    If overrideReady And areLogin Then
+        Print " - OVERRIDE protocol ready"
+    ElseIf overrideReady Then
+        Print " - OVERRIDE protocol unlocked (LOGIN required)"
+    End If
+End Sub
+
+'==============================
+' run / restart game
+'==============================
+Sub RunGame
+    WelcomeScreen
+    GameSetUp
+    MainScreen
+End Sub
+
+'==============================
+' reset all the game values
+'==============================
+Sub ResetGameState
+    Shared currentFolder$
+    Shared restartFlag
+    Shared endFlag
+    Shared randomValue
+    Shared fileUsed()
+    Shared folderUsed()
+    Shared folderFiles$
+    Shared folderNames$
+    Shared foundPassword
+    Shared areLogin
+    Shared hasNote
+    Shared cleanUses
+    Shared hasToolkit
+    Shared patchActive
+    Shared patchTurns
+    Shared hasNullHex
+    Shared overrideReady
+
+    currentFolder$ = "C:\"
+    restartFlag = 0
+    endFlag = 0
+
+    Randomize Timer
+    randomValue = Int(Rnd * 10) + 1
+
+    ' track Used Files With a Parallel Boolean Array
+    For i = 1 To 12
+        fileUsed(i) = 0
+    Next
+
+    ' track Used Folder With a Parallel Boolean Array
+    For i = 1 To 4
+        folderUsed(i) = 0
+    Next
+
+    Dim newfolderNames$(2) ' number of folders in game
+    Dim newfolderFiles$(2, 5) ' number of files in each folder
+
+    folderNames$ = newfolderNames$
+    folderFiles$ = newfolderFiles$
+
+    ' Reset game flags and progress
+    foundPassword = 0
+    areLogin = 0
+    hasNote = 0
+    cleanUses = 0
+    hasToolkit = 0
+    patchActive = 0
+    patchTurns = 0
+    hasNullHex = 0
+    overrideReady = 0
+End Sub

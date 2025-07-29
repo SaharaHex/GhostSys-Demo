@@ -48,7 +48,7 @@ Dim folderFiles$(2, 5) ' number of files in each folder
 
 foundPassword = 0 ' to login to system
 areLogin = 0 ' have logged in to system
-hasNote = 0 ' todo
+hasNote = 0 ' have password
 
 Dim cleanUses ' to remove junk files
 Dim maxCleanUses
@@ -544,7 +544,7 @@ End Sub
 Sub ShowHelp
     Print "dir      - displays working directory contents"
     Print "cd       - change the working directory (cd .. To go back directory)"
-    Print "type     - display contents of a text file"
+    Print "type     - display contents of a any file (if accessible)"
     Print "login    - attempt system login (game goal)"
     Print "override - terminate rogue AI if NULL.HEX is located (game goal)"
     Print "clean    - delete junk files (limited number of use)"
